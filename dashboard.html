@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>ESP32 Sound Classifier</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #0b1020;
+      color: #edf2ff;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+    .subtitle { color: #aab5d0; margin: 8px 0 24px; }
+    .card {
+      background: #141c31;
+      border: 1px solid #293653;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .status { color: #aab5d0; font-size: 0.92rem; }
+    .headline { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .prediction { font-size: 1.5rem; font-weight: 700; overflow-wrap: anywhere; }
+    .confidence { color: #a9c7ff; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+    .bar-row { display: grid; grid-template-columns: minmax(130px, 190px) 1fr 58px; align-items: center; gap: 12px; margin: 14px 0; }
+    .name { overflow-wrap: anywhere; color: #d7def0; }
+    .track { height: 12px; overflow: hidden; border-radius: 999px; background: #27324a; }
+    .fill { height: 100%; min-width: 0; border-radius: inherit; background: #638cff; transition: width 180ms ease; }
+    .bar-row.top .fill { background: #4cdda1; }
+    .percent { text-align: right; color: #c2cce1; font-variant-numeric: tabular-nums; }
+    .empty { color: #aab5d0; padding: 20px 0 4px; }
+    @media (max-width: 520px) {
+      body { padding: 22px 12px; }
+      .card { padding: 16px; }
+      .bar-row { grid-template-columns: minmax(90px, 1fr) 1fr 52px; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ESP32 Sound Classifier</h1>
+    <p class="subtitle">Live confidence scores for all UrbanSound8K classes</p>
+    <section class="card" aria-live="polite">
+      <div id="status" class="status">Connecting to prediction server…</div>
+      <div id="prediction" class="empty">Waiting for the first ESP32 prediction.</div>
+      <div id="scores"></div>
+    </section>
+  </main>
+  <script>
+    const statusElement = document.getElementById("status");
+    const predictionElement = document.getElementById("prediction");
+    const scoresElement = document.getElementById("scores");
+
+    function displayPrediction(data) {
+      const entries = Object.entries(data.scores || {})
+        .filter(([, score]) => Number.isFinite(Number(score)))
+        .map(([name, score]) => [name, Math.max(0, Math.min(1, Number(score)))])
+        .sort((a, b) => b[1] - a[1]);
+
+      predictionElement.className = "headline";
+      predictionElement.replaceChildren();
+      const label = document.createElement("span");
+      label.className = "prediction";
+      label.textContent = data.label;
+      const confidence = document.createElement("span");
+      confidence.className = "confidence";
+      confidence.textContent = `${(Number(data.confidence) * 100).toFixed(1)}%`;
+      predictionElement.append(label, confidence);
+
+      scoresElement.replaceChildren();
+      for (const [index, [name, score]] of entries.entries()) {
+        const row = document.createElement("div");
+        row.className = `bar-row${index === 0 ? " top" : ""}`;
+
+        const className = document.createElement("span");
+        className.className = "name";
+        className.textContent = name.replaceAll("_", " ");
+
+        const track = document.createElement("div");
+        track.className = "track";
+        track.setAttribute("role", "meter");
+        track.setAttribute("aria-label", `${className.textContent} confidence`);
+        track.setAttribute("aria-valuemin", "0");
+        track.setAttribute("aria-valuemax", "100");
+        track.setAttribute("aria-valuenow", String((score * 100).toFixed(1)));
+
+        const fill = document.createElement("div");
+        fill.className = "fill";
+        fill.style.width = `${(score * 100).toFixed(1)}%`;
+        track.append(fill);
+
+        const percent = document.createElement("span");
+        percent.className = "percent";
+        percent.textContent = `${(score * 100).toFixed(1)}%`;
+        row.append(className, track, percent);
+        scoresElement.append(row);
+      }
+    }
+
+    async function refresh() {
+      if (location.protocol === "file:") {
+        statusElement.textContent =
+          "Open this dashboard through the receiver at http://<computer-ipv4>:8000/; do not open dashboard.html directly.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/predictions", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        statusElement.textContent = "Connected · refreshing every second";
+        if (!result.prediction) {
+          predictionElement.className = "empty";
+          predictionElement.textContent = "Waiting for the first ESP32 prediction.";
+          scoresElement.replaceChildren();
+        } else if (result.prediction.scores) {
+          displayPrediction(result.prediction);
+        } else {
+          statusElement.textContent = "Connected · upload the updated ESP32 sketch to show every class";
+        }
+      } catch (error) {
+        const apiUrl = new URL("/api/predictions", location.href);
+        statusElement.textContent =
+          `Cannot reach ${apiUrl.href}: ${error.message}. Check that receive_predictions.py is running and use the computer's current IPv4 address.`;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>
