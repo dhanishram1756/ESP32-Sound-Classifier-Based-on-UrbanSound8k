@@ -43,14 +43,24 @@ validation, and fold 10 for the held-out test score. The generated files are:
 - `artifacts/urbansound8k_features.npz`
 - `artifacts/sound_classifier.tflite`
 - `artifacts/metadata.json`
+- `artifacts/training_curves.png`
+- `artifacts/confusion_matrix.png`
+- `artifacts/confusion_matrix.csv`
 - `firmware/esp32_sound_classifier/model_data.h`
 
-Training uses a compact 64/32-unit dense network with dropout, early stopping
-on fold 9, and reports both fold 10 accuracy and macro F1. With the feature
-archive used for this project, this configuration scored 43.5% accuracy on
-fold 10 versus 39.4% for the original 48/24-unit model. Results can vary with
-the dataset windows and runtime; use the newly generated `metadata.json` score
-to see the result on your data.
+Training uses a 256/128-unit dense network with batch normalization, dropout,
+Gaussian feature noise, validation on fold 9, early stopping, and learning-rate
+reduction. The default is 150 epochs. It reports both window accuracy and
+clip-level accuracy with macro F1, and saves training curves and confusion
+matrices. The richer frequency response uses 24 bands covering approximately
+64 Hz to 12.3 kHz; re-run feature extraction after changing this layout because
+ESP32 firmware feature counts must match the generated model metadata.
+
+For reproducible deployment results, train with Python and then regenerate the
+ESP32 header. Accuracy depends strongly on UrbanSound8K fold, microphone quality,
+room noise, and whether clips are averaged correctly. The richer-band run
+measured 56.27% clip accuracy and 59.07% macro F1 on fold 10; 75% is therefore
+not yet achieved and cannot be guaranteed by additional epochs alone.
 
 Extraction prints progress every 100 clips. It uses a vectorized FFT on the
 desktop for the same frequency-bin power features calculated by Goertzel on

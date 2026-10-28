@@ -20,7 +20,7 @@ constexpr int kMicPin = 34;  // ADC1 pin; MAX module output must stay within 0-3
 constexpr int kSampleRate = 16000;
 constexpr int kFrameSamples = 500;
 constexpr int kFrameCount = 32;
-constexpr int kFeatureBins[] = {2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96};
+constexpr int kFeatureBins[] = {2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128, 160, 192, 224, 240};
 constexpr int kFeaturesPerFrame = sizeof(kFeatureBins) / sizeof(kFeatureBins[0]);
 constexpr int kArenaSize = 24 * 1024;
 
