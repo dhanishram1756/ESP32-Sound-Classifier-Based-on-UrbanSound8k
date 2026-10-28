@@ -36,6 +36,13 @@ python train_model.py
 python convert_to_header.py
 ```
 
+ESP32 flash configuration is important: the generated 256/128 model is too large
+for the default Arduino partition. In Arduino IDE select **Tools -> Partition
+Scheme -> Huge APP (3MB No OTA/1MB SPIFFS)**. Do not change the flash size from
+4 MB. Then choose **Verify**, followed by **Upload**. The ESP32 DevKit V1 does
+not need a separate model-file upload because the bytes are compiled into
+`model_data.h`.
+
 Feature extraction creates one-second windows with a half-second hop, and
 zero-pads clips shorter than one second. Training uses folds 1-8, fold 9 for
 validation, and fold 10 for the held-out test score. The generated files are:
@@ -69,7 +76,7 @@ will restart from the beginning.
 
 The loader supports PCM and compressed WAV formats, including DVI/IMA ADPCM.
 The feature vector contains 32 successive 500-sample frames. Each frame has
-12 Hann-windowed Goertzel log-power values. The Arduino implementation uses
+24 Hann-windowed FFT/Goertzel log-power values. The Arduino implementation uses
 the same frame size, frequency bins, window, and per-feature normalization as
 the Python pipeline.
 

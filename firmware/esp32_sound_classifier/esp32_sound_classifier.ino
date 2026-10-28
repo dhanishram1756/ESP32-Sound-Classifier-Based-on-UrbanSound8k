@@ -13,7 +13,7 @@
 // Set these for your Wi-Fi network and HTTP endpoint.
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-const char* SERVER_URL = "http://10.104.47.161:8000/predict";
+const char* SERVER_URL = "http://10.132.232.161:8000/predict";
 const char* DEVICE_ID = "esp32-1";
 
 constexpr int kMicPin = 34;  // ADC1 pin; MAX module output must stay within 0-3.3 V.
