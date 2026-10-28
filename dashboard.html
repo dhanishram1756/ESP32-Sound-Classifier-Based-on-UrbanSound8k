@@ -7,49 +7,105 @@
   <title>ESP32 Sound Classifier</title>
   <style>
     :root {
-      color-scheme: dark;
-      font-family: Inter, "Segoe UI", sans-serif;
-      background: #0b1020;
-      color: #edf2ff;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: #123b55;
       font-synthesis: none;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 32px 16px; }
-    main { max-width: 760px; margin: 0 auto; }
-    h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
-    .subtitle { color: #aab5d0; margin: 8px 0 24px; }
-    .card {
-      background: #141c31;
-      border: 1px solid #293653;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px 16px 48px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(ellipse at 15% 18%, rgba(255, 255, 255, .95) 0 1%, transparent 13%),
+        radial-gradient(ellipse at 82% 12%, rgba(255, 255, 255, .9) 0 1%, transparent 14%),
+        linear-gradient(180deg, #67d8ff 0%, #bff1ff 44%, #a9d978 45%, #79b64c 100%);
+      background-attachment: fixed;
     }
-    .status { color: #aab5d0; font-size: 0.92rem; }
-    .headline { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-    .prediction { font-size: 1.5rem; font-weight: 700; overflow-wrap: anywhere; }
-    .confidence { color: #a9c7ff; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
-    .bar-row { display: grid; grid-template-columns: minmax(130px, 190px) 1fr 58px; align-items: center; gap: 12px; margin: 14px 0; }
-    .name { overflow-wrap: anywhere; color: #d7def0; }
-    .track { height: 12px; overflow: hidden; border-radius: 999px; background: #27324a; }
-    .fill { height: 100%; min-width: 0; border-radius: inherit; background: #638cff; transition: width 180ms ease; }
-    .bar-row.top .fill { background: #4cdda1; }
-    .percent { text-align: right; color: #c2cce1; font-variant-numeric: tabular-nums; }
-    .empty { color: #aab5d0; padding: 20px 0 4px; }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 44% 0 0;
+      pointer-events: none;
+      opacity: .34;
+      background:
+        repeating-linear-gradient(168deg, transparent 0 34px, rgba(31, 100, 55, .22) 35px 38px),
+        repeating-linear-gradient(12deg, transparent 0 48px, rgba(255,255,255,.38) 49px 51px);
+    }
+    main { position: relative; z-index: 1; max-width: 850px; margin: 0 auto; }
+    .hero { text-align: center; margin-bottom: 18px; text-shadow: 0 2px 0 rgba(255,255,255,.75); }
+    .hero-mark {
+      width: 74px; height: 74px; margin: 0 auto 10px;
+      display: grid; place-items: center;
+      border: 2px solid rgba(255,255,255,.95);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 28%, #fff 0 6%, #bdf5ff 24%, #36b9ed 58%, #176cae 100%);
+      box-shadow: 0 8px 18px rgba(21, 94, 145, .28), inset 0 0 12px rgba(255,255,255,.9);
+      font-size: 31px;
+    }
+    h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.8rem); letter-spacing: -.04em; }
+    .subtitle { margin: 6px 0 0; color: #2e657f; font-weight: 700; }
+    .glass {
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: 26px;
+      background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(214,247,255,.58));
+      box-shadow: 0 18px 40px rgba(25, 105, 142, .22), inset 0 1px rgba(255,255,255,.95);
+      backdrop-filter: blur(14px);
+    }
+    .now-playing { position: relative; overflow: hidden; padding: 23px; margin-bottom: 18px; }
+    .now-playing::after {
+      content: ""; position: absolute; left: 18px; right: 18px; top: 7px; height: 9px;
+      border-radius: 50%; background: rgba(255,255,255,.7); filter: blur(2px);
+    }
+    .status-line { display: flex; align-items: center; gap: 8px; color: #39718b; font-size: .88rem; font-weight: 700; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #54dc72; box-shadow: 0 0 10px #54dc72; }
+    .headline { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; }
+    .prediction-wrap { min-width: 0; }
+    .prediction-label { display: block; color: #5b8294; font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    .prediction { display: block; margin-top: 4px; font-size: clamp(1.8rem, 7vw, 3rem); font-weight: 900; line-height: 1; overflow-wrap: anywhere; }
+    .confidence-orb {
+      flex: 0 0 auto; width: 108px; height: 108px; display: grid; place-items: center;
+      border: 3px solid rgba(255,255,255,.9); border-radius: 50%; text-align: center;
+      background: radial-gradient(circle at 35% 25%, #fff 0 4%, #bff8db 23%, #3cc69b 60%, #19899a 100%);
+      box-shadow: 0 10px 20px rgba(31, 130, 151, .24), inset 0 -9px 18px rgba(15,100,130,.16);
+    }
+    .confidence { font-size: 1.35rem; font-weight: 900; }
+    .confidence-orb small { display: block; margin-top: -5px; color: #307d80; text-transform: uppercase; }
+    .scores-panel { padding: 20px; }
+    .scores-title { margin: 0 0 12px; font-size: 1rem; letter-spacing: .05em; text-transform: uppercase; }
+    .bar-row { display: grid; grid-template-columns: minmax(120px, 185px) 1fr 64px; align-items: center; gap: 12px; padding: 6px 0; }
+    .name { font-weight: 800; overflow-wrap: anywhere; }
+    .track { height: 16px; overflow: hidden; border: 1px solid rgba(74,142,174,.28); border-radius: 999px; background: rgba(117,183,205,.22); box-shadow: inset 0 2px 4px rgba(40,96,130,.16); }
+    .fill { height: 100%; min-width: 0; border-radius: inherit; background: linear-gradient(180deg, #efffff 0 22%, #74d8ff 23%, #24addf 68%, #168ac6 100%); box-shadow: inset 0 0 3px rgba(255,255,255,.85); transition: width 260ms ease; }
+    .bar-row.top .fill { background: linear-gradient(180deg, #efffff 0 22%, #bdf884 23%, #63d43e 68%, #28a82d 100%); }
+    .percent { text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .empty { color: #39718b; padding: 12px 0; text-align: center; }
     @media (max-width: 520px) {
-      body { padding: 22px 12px; }
-      .card { padding: 16px; }
-      .bar-row { grid-template-columns: minmax(90px, 1fr) 1fr 52px; gap: 8px; }
+      body { padding: 18px 10px 36px; }
+      .hero-mark { width: 62px; height: 62px; }
+      .now-playing { padding: 18px; }
+      .confidence-orb { width: 92px; height: 92px; }
+      .scores-panel { padding: 14px 12px; }
+      .bar-row { grid-template-columns: minmax(92px, 1fr) 1fr 52px; gap: 7px; }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>ESP32 Sound Classifier</h1>
-    <p class="subtitle">Live confidence scores for all UrbanSound8K classes</p>
-    <section class="card" aria-live="polite">
-      <div id="status" class="status">Connecting to prediction server…</div>
+    <header class="hero">
+      <div class="hero-mark" aria-hidden="true">♫</div>
+      <h1>ESP32 Sound Classifier</h1>
+      <p class="subtitle">Live UrbanSound8K sound intelligence</p>
+    </header>
+
+    <section class="now-playing glass" aria-live="polite">
+      <div class="status-line"><span class="status-dot"></span><span id="status">Connecting to prediction server…</span></div>
       <div id="prediction" class="empty">Waiting for the first ESP32 prediction.</div>
+    </section>
+
+    <section class="scores-panel glass">
+      <h2 class="scores-title">Class confidence</h2>
       <div id="scores"></div>
     </section>
   </main>
@@ -66,13 +122,28 @@
 
       predictionElement.className = "headline";
       predictionElement.replaceChildren();
+
+      const wrap = document.createElement("div");
+      wrap.className = "prediction-wrap";
+      const caption = document.createElement("span");
+      caption.className = "prediction-label";
+      caption.textContent = "Highest confidence";
       const label = document.createElement("span");
       label.className = "prediction";
-      label.textContent = data.label;
+      label.textContent = data.label.replaceAll("_", " ");
+      wrap.append(caption, label);
+
+      const orb = document.createElement("div");
+      orb.className = "confidence-orb";
+      const confidenceText = document.createElement("div");
       const confidence = document.createElement("span");
       confidence.className = "confidence";
       confidence.textContent = `${(Number(data.confidence) * 100).toFixed(1)}%`;
-      predictionElement.append(label, confidence);
+      const confidenceCaption = document.createElement("small");
+      confidenceCaption.textContent = "confidence";
+      confidenceText.append(confidence, confidenceCaption);
+      orb.append(confidenceText);
+      predictionElement.append(wrap, orb);
 
       scoresElement.replaceChildren();
       for (const [index, [name, score]] of entries.entries()) {
