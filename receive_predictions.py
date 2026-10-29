@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
 from typing import Any
+from urllib.parse import urlsplit
 
 HOST = "0.0.0.0"
 PORT = 8000
@@ -27,13 +28,15 @@ def send_json(handler: BaseHTTPRequestHandler, status: int, payload: Any) -> Non
 
 class PredictionHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        if self.path == "/api/predictions":
+        request_path = urlsplit(self.path).path
+
+        if request_path == "/api/predictions":
             with LATEST_PREDICTION_LOCK:
                 prediction = LATEST_PREDICTION
             send_json(self, 200, {"prediction": prediction})
             return
 
-        if self.path == "/dashboard-background.png":
+        if request_path == "/dashboard-background.png":
             try:
                 background = (
                     Path(__file__)
@@ -51,7 +54,7 @@ class PredictionHandler(BaseHTTPRequestHandler):
             self.wfile.write(background)
             return
 
-        if self.path == "/":
+        if request_path == "/":
             try:
                 dashboard = (
                     Path(__file__)
@@ -63,12 +66,13 @@ class PredictionHandler(BaseHTTPRequestHandler):
                 return
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.send_header("Content-Length", str(len(dashboard)))
             self.end_headers()
             self.wfile.write(dashboard)
             return
 
-        if self.path not in ("/health", "/predict"):
+        if request_path not in ("/health", "/predict"):
             self.send_error(404, "Use GET / for status or POST /predict for predictions")
             return
 
