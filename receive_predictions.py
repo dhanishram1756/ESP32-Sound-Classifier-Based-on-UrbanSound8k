@@ -33,6 +33,24 @@ class PredictionHandler(BaseHTTPRequestHandler):
             send_json(self, 200, {"prediction": prediction})
             return
 
+        if self.path == "/dashboard-background.png":
+            try:
+                background = (
+                    Path(__file__)
+                    .with_name("dashboard-background.png")
+                    .read_bytes()
+                )
+            except OSError as error:
+                self.send_error(500, f"Could not read dashboard background: {error}")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Content-Length", str(len(background)))
+            self.end_headers()
+            self.wfile.write(background)
+            return
+
         if self.path == "/":
             try:
                 dashboard = (
